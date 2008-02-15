@@ -3,7 +3,7 @@
 	<property name="project.src.dir" value="${project.root}/src"/>
 	<property name="project.lib.dir" value="${project.root}/lib"/>
 	<property name="project.release.dir" value="${project.root}/release"/>
-	<property name="project.jar.filename" value="jperf2.0.0"/>
+	<property name="project.filename" value="jperf2.0.0"/>
 	
 	<path id="project.classpath">
 		<fileset dir="${project.lib.dir}">
@@ -25,7 +25,7 @@
 				<exclude name="**/.svn"/>
 			</fileset>
 		</copy>
-		<jar destfile="${project.release.dir}/${project.jar.filename}.jar">
+		<jar destfile="${project.release.dir}/${project.filename}.jar">
 			<fileset dir="${project.release.dir}/classes">
 				<include name="**/*"/>
 			</fileset>
@@ -34,5 +34,13 @@
 		<copy todir="${project.release.dir}/lib">
 			<fileset dir="${project.lib.dir}" />
 		</copy>
+	</target>
+	
+	<target name="create distrib" depends="release">
+		<zip destfile="${project.root}/${project.filename}.zip">
+			<fileset dir="${project.release.dir}">
+				<exclude name="**/.svn"/>
+			</fileset>
+		</zip>
 	</target>
 </project>
