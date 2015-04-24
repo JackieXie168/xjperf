@@ -16,16 +16,23 @@ package net.nlanr.jperf.core;
 
 import java.io.*;
 
+import java.util.*;
+
 import net.nlanr.jperf.ui.JPerfUI;
 import net.nlanr.jperf.ui.JPerfWaitWindow;
 
 import java.util.Vector;
 import java.util.regex.*;
 
+import javax.swing.SwingUtilities;
+
 public class IperfThread extends Thread
 {
 	private String										command;
 	private Process										process;
+	
+	private ProcessBuilder								builder;	
+	
 	private JPerfUI										frame;
 	private Vector<JperfStreamResult>	finalResults;
 
@@ -49,133 +56,170 @@ public class IperfThread extends Thread
 		{
 			frame.setStartedStatus();
 
-			process = Runtime.getRuntime().exec(command);
+			// // process = Runtime.getRuntime().exec(command);
+			
+			// // // read in the output from Iperf
+			// // input = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			// // errors = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-			// read in the output from Iperf
+			// // String input_line = null;
+			// // while ((input_line = input.readLine()) != null)
+			// // {
+				// // parseLine(input_line);
+				// // frame.logMessage(input_line);
+			// // }
+
+			// // String error_line = null;
+			// // while ((error_line = errors.readLine()) != null)
+			// // {
+				// // frame.logMessage(error_line);
+			// // }
+			
+			List<String> items = Arrays.asList(command.split("\\s+"));
+			
+			builder = new ProcessBuilder(items);
+			builder.redirectErrorStream(true);
+			
+			process = builder.start();
+			
 			input = new BufferedReader(new InputStreamReader(process.getInputStream()));
-			errors = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
+			
 			String input_line = null;
 			while ((input_line = input.readLine()) != null)
 			{
 				parseLine(input_line);
 				frame.logMessage(input_line);
 			}
-
-			String error_line = null;
-			while ((error_line = errors.readLine()) != null)
-			{
-				frame.logMessage(error_line);
-			}
+			
 
 			frame.logMessage("Done.\n");
 		}
 		catch (Exception e)
 		{
 			// don't do anything?
-			frame.logMessage("\nIperf thread stopped [CAUSE=" + e.getMessage() + "]");
+			frame.logMessage("\nIperf3 thread stopped [CAUSE=" + e.getMessage() + "]");
 		}
 		finally
 		{
 			quit();
 		}
 	}
-
+	
+	private Object waitWindowMutex = new Object();
+	private JPerfWaitWindow waitWindow;
+	
 	public synchronized void quit()
 	{
-		if (process != null)
+		SwingUtilities.invokeLater(new Runnable()
 		{
-			JPerfWaitWindow waitWindow = new JPerfWaitWindow(frame);
-			frame.setEnabled(false);
-			waitWindow.setVisible(true);
-			waitWindow.repaint();
-			try
+			public void run()
 			{
-				Thread.sleep(100);
+				if (process != null)
+				{
+					synchronized(waitWindowMutex)
+					{
+						if (waitWindow != null)
+						{
+							return;
+						}
+						waitWindow = new JPerfWaitWindow(frame);
+						frame.setEnabled(false);
+						waitWindow.setVisible(true);
+					}
+					Thread t = new Thread()
+					{
+						public void run()
+						{
+							process.destroy();
+							
+							if (!isServerMode)
+							{
+								try
+								{
+									process.getInputStream().close();
+								}
+								catch (Exception e)
+								{
+									// nothing
+								}
+				
+								try
+								{
+									process.getOutputStream().close();
+								}
+								catch (Exception e)
+								{
+									// nothing
+								}
+				
+								try
+								{
+									process.getErrorStream().close();
+								}
+								catch (Exception e)
+								{
+									// nothing
+								}
+								
+								if (input != null)
+								{
+									try
+									{
+										input.close();
+									}
+									catch (Exception e)
+									{
+										// nothing
+									}
+									finally
+									{
+										input = null;
+									}
+								}
+				
+								if (errors != null)
+								{
+									try
+									{
+										errors.close();
+									}
+									catch (Exception e)
+									{
+										// nothing
+									}
+									finally
+									{
+										errors = null;
+									}
+								}
+							}
+							
+							try
+							{
+								process.waitFor();
+							}
+							catch (Exception ie)
+							{
+								// nothing
+							}
+				
+							process = null;
+							
+							synchronized(waitWindowMutex)
+							{
+								waitWindow.setVisible(false);
+								waitWindow.dispose();
+								waitWindow = null;
+								frame.setStoppedStatus();
+								frame.setEnabled(true);
+							}
+						}
+					};
+					t.setDaemon(true);
+					t.start();
+				}
 			}
-			catch (InterruptedException ie)
-			{
-			}
-
-			if (!isServerMode)
-			{
-				if (input != null)
-				{
-					try
-					{
-						input.close();
-					}
-					catch (Exception e)
-					{
-						// nothing
-					}
-					finally
-					{
-						input = null;
-					}
-				}
-
-				if (errors != null)
-				{
-					try
-					{
-						errors.close();
-					}
-					catch (Exception e)
-					{
-						// nothing
-					}
-					finally
-					{
-						errors = null;
-					}
-				}
-
-				try
-				{
-					process.getInputStream().close();
-				}
-				catch (Exception e)
-				{
-					// nothing
-				}
-
-				try
-				{
-					process.getOutputStream().close();
-				}
-				catch (Exception e)
-				{
-					// nothing
-				}
-
-				try
-				{
-					process.getErrorStream().close();
-				}
-				catch (Exception e)
-				{
-					// nothing
-				}
-			}
-
-			process.destroy();
-
-			try
-			{
-				process.waitFor();
-			}
-			catch (Exception ie)
-			{
-				// nothing
-			}
-
-			process = null;
-
-			frame.setStoppedStatus();
-			waitWindow.setVisible(false);
-			frame.setEnabled(true);
-		}
+		});
 	}
 
 	public void parseLine(String line)
@@ -208,31 +252,48 @@ public class IperfThread extends Thread
 			{
 				finalResults.add(streamResult);
 			}
+			
 			// this is TCP or Client UDP
-			if (results.length == 9)
-			{
-				Double start = new Double(results[2].trim());
-				Double end = new Double(results[3].trim());
-				Double bw = new Double(results[7].trim());
+			
+			// if (results.length == 9)
+			// {
+				// Double start = new Double(results[2].trim());
+				// Double end = new Double(results[3].trim());
+				// Double bw = new Double(results[7].trim());
 				
-				Measurement M = new Measurement(start.doubleValue(), end.doubleValue(), bw.doubleValue(), results[8]);
-				streamResult.addBW(M);
-				frame.addNewStreamBandwidthMeasurement(id, M);
-			}
-			else if (results.length == 14)
-			{
-				Double start = new Double(results[2].trim());
-				Double end = new Double(results[3].trim());
-				Double bw = new Double(results[7].trim());
+				// Measurement M = new Measurement(start.doubleValue(), end.doubleValue(), bw.doubleValue(), results[8]);
+				// streamResult.addBW(M);
+				// frame.addNewStreamBandwidthMeasurement(id, M);
+			// }
+			// else if (results.length == 14)
+			// {
+				// Double start = new Double(results[2].trim());
+				// Double end = new Double(results[3].trim());
+				// Double bw = new Double(results[7].trim());
 
-				Measurement B = new Measurement(start.doubleValue(), end.doubleValue(), bw.doubleValue(), results[7]);
-				streamResult.addBW(B);
+				// Measurement B = new Measurement(start.doubleValue(), end.doubleValue(), bw.doubleValue(), results[7]);
+				// streamResult.addBW(B);
 
-				Double jitter = new Double(results[9].trim());
-				Measurement J = new Measurement(start.doubleValue(), end.doubleValue(), jitter.doubleValue(), results[10]);
-				streamResult.addJitter(J);
-				frame.addNewStreamBandwidthAndJitterMeasurement(id, B, J);
-			}
+				// Double jitter = new Double(results[9].trim());
+				// Measurement J = new Measurement(start.doubleValue(), end.doubleValue(), jitter.doubleValue(), results[10]);
+				// streamResult.addJitter(J);
+				// frame.addNewStreamBandwidthAndJitterMeasurement(id, B, J);
+			// }
+			
+			
+			Double start = new Double(results[2].trim());
+			Double end = new Double(results[3].trim());
+			Double bw = new Double(results[7].trim());
+			
+			Measurement M = new Measurement(start.doubleValue(), end.doubleValue(), bw.doubleValue(), results[8]);
+			streamResult.addBW(M);
+			frame.addNewStreamBandwidthMeasurement(id, M);
+			
+			
+		}
+		else if (line.matches(".*Unable.*to.*start.*listener.*for.*connections.*Address.*already.*in.*use.*"))
+		{
+			throw new RuntimeException("Unable to start listener for connections: Address already in use");
 		}
 	}
 }

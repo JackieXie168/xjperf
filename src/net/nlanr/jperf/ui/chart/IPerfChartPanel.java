@@ -125,11 +125,11 @@ public class IPerfChartPanel extends AbstractChartPanel
 			bandwidthCollection.addSeries(data.bandwidthSeries);
 			bandwidthRenderer.setSeriesPaint(bandwidthCollection.getSeriesCount()-1, data.seriesColor);
 			
-			if (isServerMode)
-			{
-				jitterCollection.addSeries(data.jitterSeries);
-				jitterRenderer.setSeriesPaint(jitterCollection.getSeriesCount()-1, data.seriesColor);
-			}
+			// if (isServerMode)
+			// {
+				// jitterCollection.addSeries(data.jitterSeries);
+				// jitterRenderer.setSeriesPaint(jitterCollection.getSeriesCount()-1, data.seriesColor);
+			// }
 			
 			panelTextStats.add(data.seriesLabel);
 		}
@@ -204,29 +204,29 @@ public class IPerfChartPanel extends AbstractChartPanel
 		axis = bandwidthPlot.getRangeAxis();
 		axis.setTickLabelPaint(foregroundColor);
 
-		if (isServerMode)
-		{
-			rangeAxis = new NumberAxis(jitterValueAxisLabel);
-			rangeAxis.setLabelPaint(foregroundColor);
+		// if (isServerMode)
+		// {
+			// rangeAxis = new NumberAxis(jitterValueAxisLabel);
+			// rangeAxis.setLabelPaint(foregroundColor);
 
-			// creation of the jitter plot
-			jitterRenderer = new XYLineAndShapeRenderer();
-			jitterCollection = new XYSeriesCollection();
-			XYPlot jitterPlot = new XYPlot(jitterCollection, null, rangeAxis, jitterRenderer);
-			jitterPlot.setRangeAxisLocation(AxisLocation.BOTTOM_OR_LEFT);
-			jitterPlot.setDomainCrosshairVisible(false);
-			jitterPlot.setRangeCrosshairVisible(false);
-			jitterPlot.setBackgroundPaint(backgroundColor);
-			jitterPlot.setDomainGridlinePaint(gridColor);
-			jitterPlot.setRangeGridlinePaint(gridColor);
+			// // creation of the jitter plot
+			// jitterRenderer = new XYLineAndShapeRenderer();
+			// jitterCollection = new XYSeriesCollection();
+			// XYPlot jitterPlot = new XYPlot(jitterCollection, null, rangeAxis, jitterRenderer);
+			// jitterPlot.setRangeAxisLocation(AxisLocation.BOTTOM_OR_LEFT);
+			// jitterPlot.setDomainCrosshairVisible(false);
+			// jitterPlot.setRangeCrosshairVisible(false);
+			// jitterPlot.setBackgroundPaint(backgroundColor);
+			// jitterPlot.setDomainGridlinePaint(gridColor);
+			// jitterPlot.setRangeGridlinePaint(gridColor);
 
-			// add the plot
-			graphSet.add(jitterPlot, proportion);
+			// // add the plot
+			// graphSet.add(jitterPlot, proportion);
 
-			// set up the range axis
-			axis = jitterPlot.getRangeAxis();
-			axis.setTickLabelPaint(foregroundColor);
-		}
+			// // set up the range axis
+			// axis = jitterPlot.getRangeAxis();
+			// axis.setTickLabelPaint(foregroundColor);
+		// }
 
 		// set up the hour&date label presentation
 		labelDate.setHorizontalAlignment(JLabel.RIGHT);
@@ -245,7 +245,7 @@ public class IPerfChartPanel extends AbstractChartPanel
 	{
 		SeriesData data = seriesData.get(seriesId);
 		
-		if (measurement.getEndTime()-measurement.getStartTime() > reportInterval)
+		if (measurement.getEndTime()-measurement.getStartTime() > (reportInterval*1.9))
 		{
 			// this is the sum-up of the test
 			data.seriesLabel.setText(String.format("<html><b>%s</b> [" + data.printfBandwidthValueExpression + "%s] </html>", data.bandwidthLegend, measurement.getValue(), bandwidthUnit+"/s"));
@@ -275,7 +275,7 @@ public class IPerfChartPanel extends AbstractChartPanel
 	{
 		SeriesData data = seriesData.get(seriesId);
 		
-		if (bandwidth.getEndTime()-bandwidth.getStartTime() > reportInterval)
+		if (bandwidth.getEndTime()-bandwidth.getStartTime() > (reportInterval*1.9))
 		{
 			// this is the sum-up of the test
 			data.seriesLabel.setText(String.format("<html><b>%s</b> [" + data.printfBandwidthValueExpression + "%s]<br><b>%s</b> ["+data.printfJitterValueExpression+"%s]</html>", data.bandwidthLegend, bandwidth.getValue(), bandwidthUnit+"/s", data.jitterLegend, jitter.getValue(), jitterUnit));

@@ -4,15 +4,14 @@
  * Changelog:
  * 	- class created
  * 
- * To do:
- * 	- ...
+ *-05/2009:
+ *	- code improved
  */
 
 
 package net.nlanr.jperf.ui;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -26,8 +25,10 @@ public class JPerfWaitWindow extends JDialog
 	
 	public JPerfWaitWindow(JFrame parent)
 	{
-		super(parent, "Stopping iperf...", false);
+		super(parent, "Stopping Iperf3...", false);
 		this.parent = parent;
+		setFocusableWindowState(false);
+		setFocusable(false);
 		init();
 	}
 	
@@ -35,16 +36,17 @@ public class JPerfWaitWindow extends JDialog
 	{
 		this.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 		
-		JLabel messageLabel = new JLabel("Please wait while iPerf is stopping...");
+		JLabel messageLabel = new JLabel("Please wait while Iperf3 is stopping...");
 		messageLabel.setHorizontalAlignment(JLabel.CENTER);
 		JXBusyLabel busyLabel = new JXBusyLabel();
 		busyLabel.setOpaque(false);
 		busyLabel.setBusy(true);
 		busyLabel.setHorizontalAlignment(JLabel.CENTER);
-		this.setLayout(new BorderLayout());
-		this.add(messageLabel, BorderLayout.NORTH);
-		this.add(busyLabel, BorderLayout.CENTER);
-		this.setSize(new Dimension(300, 80));
+		
+		super.setLayout(new BorderLayout());
+		add(messageLabel, BorderLayout.NORTH);
+		add(busyLabel, BorderLayout.CENTER);
+		pack();
 		
 		this.setLocationRelativeTo(parent);
 	}
